@@ -21,8 +21,6 @@ func Load(cfg any, prefix string) {
 	ctx := context.Background()
 	help(ctx, cfg, prefix)
 
-	// Todo: log loaded config?
-	// Todo: perhaps 'catch' envconfig panics?
 	err := envconfig.Process(prefix, cfg)
 	check(ctx, nil, err)
 }

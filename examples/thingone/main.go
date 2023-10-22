@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 
-	lh "github.com/clarktrimble/launch"
+	"github.com/clarktrimble/launch"
 	"github.com/clarktrimble/launch/examples/thingone/minlog"
-	"github.com/clarktrimble/launch/examples/thingone/svclayer"
+	"github.com/clarktrimble/launch/examples/thingone/svc"
 )
 
 var (
@@ -17,21 +17,23 @@ const (
 )
 
 type Config struct {
-	Version  string           `json:"version" ignored:"true"`
-	ThingTwo string           `json:"thing_two" default:"bargle"`
-	Token    lh.Redact        `json:"token" required:"true"`
-	Svc      *svclayer.Config `json:"demo_svc"`
+	Version  string        `json:"version" ignored:"true"`
+	ThingTwo string        `json:"thing_two" desc:"the second thing" default:"bargle"`
+	Token    launch.Redact `json:"token" desc:"secret for auth" required:"true"`
+	Svc      *svc.Config   `json:"demo_svc"`
 }
 
 func main() {
 
 	cfg := &Config{Version: version}
-	lh.Load(cfg, cfgPrefix)
+	launch.Load(cfg, cfgPrefix)
 
 	lgr := &minlog.MinLog{}
+	ctx := context.Background()
+	lgr.Info(ctx, "starting", "config", cfg)
 
 	svc, err := cfg.Svc.New()
-	lh.Check(context.Background(), lgr, err)
+	launch.Check(ctx, lgr, err)
 
 	svc.Disintermediate()
 }
