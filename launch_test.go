@@ -22,10 +22,10 @@ var _ = Describe("Launch", func() {
 	var (
 		ctx context.Context
 	)
-
 	BeforeEach(func() {
 		ctx = context.Background()
 	})
+
 	Describe("checking an error", func() {
 		var (
 			lgr Logger

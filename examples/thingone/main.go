@@ -26,6 +26,7 @@ type Config struct {
 func main() {
 
 	cfg := &Config{Version: version}
+	launch.UsagePreamble = "thingone demonstrates use of the launch pkg."
 	launch.Load(cfg, cfgPrefix)
 
 	lgr := &minlog.MinLog{}
