@@ -7,9 +7,15 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"text/tabwriter"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
+)
+
+var (
+	// UseagePreamble is prepended to usage output if defined.
+	UsagePreamble string
 )
 
 // Load looks for help flags and loads the config from env
@@ -21,8 +27,6 @@ func Load(cfg any, prefix string) {
 	ctx := context.Background()
 	help(ctx, cfg, prefix)
 
-	// Todo: log loaded config?
-	// Todo: perhaps 'catch' envconfig panics?
 	err := envconfig.Process(prefix, cfg)
 	check(ctx, nil, err)
 }
@@ -37,15 +41,26 @@ func Check(ctx context.Context, lgr Logger, err error) {
 
 func help(ctx context.Context, cfg any, configPrefix string) {
 
+	// Todo: rearrange so that: 'flag.Set("help", "true")' can be used for unit plz
+
 	h := flag.Bool("h", false, "show help message")
 	help := flag.Bool("help", false, "show help message")
 	c := flag.Bool("c", false, "show configuration loaded from env")
 	conf := flag.Bool("conf", false, "show configuration loaded from env")
+
 	flag.Parse()
 
 	switch {
 	case *h || *help:
-		_ = envconfig.Usage(configPrefix, cfg)
+		format := customFormat
+		if UsagePreamble != "" {
+			format = fmt.Sprintf("\n%s%s", UsagePreamble, customFormat)
+		}
+
+		tabs := tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', 0)
+		_ = envconfig.Usagef(configPrefix, cfg, tabs, format)
+		tabs.Flush()
+
 		os.Exit(0)
 	case *c || *conf:
 		err := envconfig.Process(configPrefix, cfg)
@@ -81,3 +96,11 @@ func pp(cfg any) string {
 
 	return string(data)
 }
+
+var customFormat = `
+The following environment variables are available for configuration:
+
+KEY	TYPE	DEFAULT	REQUIRED	DESCRIPTION
+{{range .}}{{usage_key .}}	{{usage_type .}}	{{usage_default .}}	{{usage_required .}}	{{usage_description .}}
+{{end}}
+`
