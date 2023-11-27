@@ -13,19 +13,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// UseagePreamble is prepended to usage output if defined.
-	UsagePreamble string
-)
-
 // Load looks for help flags and loads the config from env
 //
 // -h for help (handly for writing env file!)
 // -c to show config that would be loaded from the current env
-func Load(cfg any, prefix string) {
+func Load(cfg any, prefix string, usage string) {
 
 	ctx := context.Background()
-	help(ctx, cfg, prefix)
+	help(ctx, cfg, prefix, usage)
 
 	err := envconfig.Process(prefix, cfg)
 	check(ctx, nil, err)
@@ -39,7 +34,7 @@ func Check(ctx context.Context, lgr Logger, err error) {
 
 // unexported
 
-func help(ctx context.Context, cfg any, configPrefix string) {
+func help(ctx context.Context, cfg any, configPrefix, usage string) {
 
 	// Todo: rearrange so that: 'flag.Set("help", "true")' can be used for unit plz
 
@@ -53,8 +48,9 @@ func help(ctx context.Context, cfg any, configPrefix string) {
 	switch {
 	case *h || *help:
 		format := customFormat
-		if UsagePreamble != "" {
-			format = fmt.Sprintf("\n%s%s", UsagePreamble, customFormat)
+
+		if usage != "" {
+			format = fmt.Sprintf("\n%s\n%s", usage, customFormat)
 		}
 
 		tabs := tabwriter.NewWriter(os.Stdout, 1, 0, 4, ' ', 0)
@@ -96,6 +92,9 @@ func pp(cfg any) string {
 
 	return string(data)
 }
+
+// customFormat is more or less copied from envconfig
+// so that usage can be prepended if present
 
 var customFormat = `
 The following environment variables are available for configuration:

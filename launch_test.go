@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/clarktrimble/launch"
-	//"github.com/clarktrimble/giant/mock"
 )
 
 func TestLaunch(t *testing.T) {
@@ -60,7 +59,7 @@ var _ = Describe("Launch", func() {
 
 		JustBeforeEach(func() {
 			os.Setenv("TST_TESTA", val)
-			Load(&cfg, prefix)
+			Load(&cfg, prefix, "")
 		})
 
 		When("env var is set", func() {
