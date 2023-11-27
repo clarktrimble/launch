@@ -14,6 +14,7 @@ var (
 
 const (
 	cfgPrefix string = "demo"
+	usage     string = "'thingone' demonstrates use of the launch pkg."
 )
 
 type Config struct {
@@ -26,8 +27,7 @@ type Config struct {
 func main() {
 
 	cfg := &Config{Version: version}
-	launch.UsagePreamble = "thingone demonstrates use of the launch pkg."
-	launch.Load(cfg, cfgPrefix)
+	launch.Load(cfg, cfgPrefix, usage)
 
 	lgr := &minlog.MinLog{}
 	ctx := context.Background()
