@@ -13,14 +13,14 @@ Why wrap the excellent envconfig module?
  - "-c" flag to show what would be loaded from environment
  - redact type for non-disclosure via json.Marshal
  - usage blerb for a gentle reminder as to purpose
- - top-level error checking
+ - logged top-level error checking
  - simple spinner for Herculean command-line utils
  - demonstrate encapsulated Config for dependencies
  - but as much as anything to test and reuse surprisingly fiddly code
 
 ## Help Flag
 
-```bash
+```
 ~/proj/launch$ go run examples/thingone/main.go -h
 
 'thingone' demonstrates use of the launch pkg.
@@ -38,7 +38,7 @@ Copy and paste from here into env file!
 
 ## Config Flag and Redact
 
-```bash
+```
 ~/proj/launch$ make
 go generate ./...
 golangci-lint run ./...
@@ -71,24 +71,27 @@ Notice how `version` sneaks in with the build and `token` is redacted.
 
 In some package:
 
-    type Config struct {
-      Important string `json:"important" required:"true"`
-      NotSoMuch int    `json:"not_so_much" default:"42"`
-    }
+```go
+  type Config struct {
+    Important string `json:"important" required:"true"`
+    NotSoMuch int    `json:"not_so_much" default:"42"`
+  }
 
-    func (cfg *Config) New() (svc *SvcLayer, err error) {
-      // ...
-      return
-    }
+  func (cfg *Config) New() (svc *SvcLayer, err error) {
+    // ...
+    return
+  }
+```
 
 In main:
 
-    type Config struct {
-      // ...
-      Version  string           `json:"version" ignored:"true"`
-      Svc      *svclayer.Config `json:"demo_svc"`
-    }
-    // ...
+```go
+  type Config struct {
+    Version  string           `json:"version" ignored:"true"`
+    Svc      *svclayer.Config `json:"demo_svc"`
+  }
+
+  func main() {
 
     cfg := &Config{Version: version}
     launch.Load(cfg, cfgPrefix)
@@ -97,6 +100,8 @@ In main:
     svc, err := cfg.Svc.New()
     launch.Check(context.Background(), lgr, err)
     // ...
+  }
+```
 
 Voila!
 The package's configuration requirements are encapsulated.
@@ -107,7 +112,7 @@ Check out the [post](https://clarktrimble.online/blog/encapsulated-env-cfg/#enca
 
 Triggering an error in `thingone`:
 
-```bash
+```
 ~/proj/launch$ DEMO_SVC_NOTSOMUCH=-1 bin/thingone
 msg > starting up
 kvs > ::config::{"version":"spin.14.d94b8a6","thing_two":"thingone","token":"--redacted--","demo_svc":{"important":"Brush and floss every day!","not_so_much":-1}}
@@ -119,22 +124,17 @@ github.com/clarktrimble/launch/examples/thingone/svc.(*Config).New
         /home/trimble/proj/launch/examples/thingone/svc/svclayer.go:41
 main.main
         /home/trimble/proj/launch/examples/thingone/main.go:48
-runtime.main
-        /home/trimble/go1211/src/runtime/proc.go:267
-runtime.goexit
-        /home/trimble/go1211/src/runtime/asm_amd64.s:1650
+...
 ```
 
 We'll want to keep this sort of thing to a minimum in main of course.
 Nice to capture the error in the logs though when it's expeditious.
 
-Notice token is still redacted!
+Notice that token is still redacted.
 
 Hat tip to the legendary [Dave Cheney](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) for the stack trace.
 
 ## Spinner
-
-A little fluffy perhaps, but nice to have when wielding a sluggish util:
 
 ```go
   sp := spinner.New()
@@ -145,3 +145,5 @@ A little fluffy perhaps, but nice to have when wielding a sluggish util:
 
   fmt.Printf("%d operations in %.2f seconds\n", sp.Count, sp.Elapsed())
 ```
+
+A little fluffy perhaps, but nice to have when wielding a sluggish util.
