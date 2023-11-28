@@ -3,71 +3,95 @@
 
 ![launch](https://github.com/clarktrimble/launch/assets/5055161/e22d6779-3ef2-459a-a3d6-f22eaebd5eee)
 
-Lightly Wrapped Envconfig for your Golang main
+Lightly Wrapped envconfig for Golang
 
 ## Why?
 
 Why wrap the excellent envconfig module?
 
- - "-h" flag for a list of environment variables of interest
+ - "-h" flag for a list of environment variables available for configuration
  - "-c" flag to show what would be loaded from environment
- - Redact type for not disclosing sensitive strings via json.Marshal
- - demonstrate super handy Config pattern for packages
- - top-level error checking
- - b-but mostly to test and reuse this surprisingly fiddly code
+ - redact type for non-disclosure via json.Marshal
+ - usage blerb for a gentle reminder as to purpose
+ - logged top-level error checking
+ - simple spinner for Herculean command-line utils
+ - demonstrate encapsulated Config for dependencies
+ - but as much as anything to test and reuse surprisingly fiddly code
 
 ## Help Flag
 
-    launch % go run github.com/clarktrimble/launch/examples/thingone -h
-    This application is configured via the environment. The following environment
-    variables can be used:
+```
+~/proj/launch$ go run examples/thingone/main.go -h
 
-    KEY                   TYPE       DEFAULT    REQUIRED    DESCRIPTION
-    DEMO_THINGTWO         String     bargle
-    DEMO_TOKEN            Redact                true
-    DEMO_SVC_IMPORTANT    String                true
-    DEMO_SVC_NOTSOMUCH    Integer    42
+'thingone' demonstrates use of the launch pkg.
+
+The following environment variables are available for configuration:
+
+KEY                   TYPE       DEFAULT    REQUIRED    DESCRIPTION
+DEMO_THINGTWO         String     bargle                 the second thing
+DEMO_TOKEN            Redact                true        secret for auth
+DEMO_SVC_IMPORTANT    String                true        an important value
+DEMO_SVC_NOTSOMUCH    Integer    42                     a less important one
+```
 
 Copy and paste from here into env file!
 
 ## Config Flag and Redact
 
-    launch % source examples/thingone/demo.env
-    launch % go run github.com/clarktrimble/launch/examples/thingone -c
-    {
-      "version": "",
-      "thing_two": "thingone",
-      "token": "--redacted--",
-      "svc_layer": {
-        "important": "Brush and floss every day!",
-        "not_so_much": 42
-      }
-    }
+```
+~/proj/launch$ make
+go generate ./...
+golangci-lint run ./...
+go test -count 1 github.com/clarktrimble/launch github.com/clarktrimble/launch/spinner
+ok      github.com/clarktrimble/launch  0.005s
+ok      github.com/clarktrimble/launch/spinner  0.014s
+:: Building thingone
+go build -ldflags '-X main.version=spin.14.d94b8a6' -o bin/thingone examples/thingone/main.go
+:: Done
+
+~/proj/launch$ . examples/thingone/env.sh ## source env file
+
+~/proj/launch$ bin/thingone -c
+{
+  "version": "spin.14.d94b8a6",
+  "thing_two": "thingone",
+  "token": "--redacted--",
+  "demo_svc": {
+    "important": "Brush and floss every day!",
+    "not_so_much": 42
+  }
+}
+```
 
 Nice for a quick sanity check!
 
-## Config Pattern
+Notice how `version` sneaks in with the build and `token` is redacted.
 
-From package:
+## Encapsulated Config
 
-    type Config struct {
-      Important string `json:"important" required:"true"`
-      NotSoMuch int    `json:"not_so_much" default:"42"`
-    }
+In some package:
 
-    func (cfg *Config) New() (svc *SvcLayer, err error) {
-      // ...
-      return
-    }
+```go
+  type Config struct {
+    Important string `json:"important" required:"true"`
+    NotSoMuch int    `json:"not_so_much" default:"42"`
+  }
+
+  func (cfg *Config) New() (svc *SvcLayer, err error) {
+    // ...
+    return
+  }
+```
 
 In main:
 
-    type Config struct {
-      // ...
-      Version  string           `json:"version" ignored:"true"`
-      Svc      *svclayer.Config `json:"demo_svc"`
-    }
-    // ...
+```go
+  type Config struct {
+    Version  string           `json:"version" ignored:"true"`
+    Svc      *svclayer.Config `json:"demo_svc"`
+  }
+
+  func main() {
 
     cfg := &Config{Version: version}
     launch.Load(cfg, cfgPrefix)
@@ -76,66 +100,52 @@ In main:
     svc, err := cfg.Svc.New()
     launch.Check(context.Background(), lgr, err)
     // ...
+  }
+```
 
-So yeah, such packages are "dependent" on the pattern, but feels like a reasonable 80/20 trade-off
-so long as confined to the service-layer (ala Clean Architecture).
+Voila!
+The package's configuration requirements are encapsulated.
+
+Check out the [post](https://clarktrimble.online/blog/encapsulated-env-cfg/#encapsulation) over on _Ba Blog_ for more.
 
 ## Check
 
-Heresy perhaps, but at the top one checks for errors.  Nice to capture this in the logs where possible.
+Triggering an error in `thingone`:
 
-## Test, Build, and/or Run
+```
+~/proj/launch$ DEMO_SVC_NOTSOMUCH=-1 bin/thingone
+msg > starting up
+kvs > ::config::{"version":"spin.14.d94b8a6","thing_two":"thingone","token":"--redacted--","demo_svc":{"important":"Brush and floss every day!","not_so_much":-1}}
 
-    launch % go test --count=1 ./...
-    launch % go run github.com/clarktrimble/launch/examples/thingone
+err > fatal top-level error nsm may not be negative, got: -1
+github.com/clarktrimble/launch/examples/thingone/svc.New
+        /home/trimble/proj/launch/examples/thingone/svc/svclayer.go:26
+github.com/clarktrimble/launch/examples/thingone/svc.(*Config).New
+        /home/trimble/proj/launch/examples/thingone/svc/svclayer.go:41
+main.main
+        /home/trimble/proj/launch/examples/thingone/main.go:48
+...
+```
 
-or
+We'll want to keep this sort of thing to a minimum in main of course.
+Nice to capture the error in the logs though when it's expeditious.
 
-    proj/launch % make build
-    :: Done
-    proj/launch % make test
-    CGO_ENABLED=0 go test -count 1 ./...
-    ?   	github.com/clarktrimble/launch/examples/thingone	[no test files]
-    ?   	github.com/clarktrimble/launch/examples/thingone/minlog	[no test files]
-    ?   	github.com/clarktrimble/launch/examples/thingone/svclayer	[no test files]
-    ok  	github.com/clarktrimble/launch	0.130s
+Notice that token is still redacted.
 
-## Golang (Anti) Idioms
+Hat tip to the legendary [Dave Cheney](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) for the stack trace.
 
-I dig the Golang community, but I might be a touch rouge with:
+## Spinner
 
-  - multi-char variable names
-  - named return parameters
-  - BDD/DSL testing
+Spinner shows a ... well, spinner, showing the next character in a slice each time `Spin` is called.
 
-Todo: spellcheck my man!
+```go
+  sp := spinner.New()
+  for i := 0; i < 99; i++ {
+    sp.Spin()
+    time.Sleep(time.Millisecond * time.Duration(rand.Intn(99)))
+  }
 
-All in the name of readability, which of course, tends towards the subjective.
+  fmt.Printf("%d operations in %.2f seconds\n", sp.Count, sp.Elapsed())
+```
 
-## License
-
-This is free and unencumbered software released into the public domain.
-
-Anyone is free to copy, modify, publish, use, compile, sell, or
-distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial or non-commercial, and by any
-means.
-
-In jurisdictions that recognize copyright laws, the author or authors
-of this software dedicate any and all copyright interest in the
-software to the public domain. We make this dedication for the benefit
-of the public at large and to the detriment of our heirs and
-successors. We intend this dedication to be an overt act of
-relinquishment in perpetuity of all present and future rights to this
-software under copyright law.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
-
-For more information, please refer to <http://unlicense.org/>
-
+A little fluffy perhaps, but nice to have when wielding a sluggish util.
