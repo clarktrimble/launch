@@ -1,4 +1,4 @@
-// Package svc demonstrates configuring a service layer with launch.
+// Package svc demonstrates configuring a service-layer with launch.
 package svc
 
 import (

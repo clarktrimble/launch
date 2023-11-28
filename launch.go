@@ -13,6 +13,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Logger is a logging interface
+type Logger interface {
+	Error(ctx context.Context, msg string, err error, kv ...interface{})
+}
+
 // Load looks for help flags and loads the config from env
 //
 // -h for help (handly for writing env file!)
