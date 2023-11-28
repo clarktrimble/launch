@@ -13,7 +13,7 @@ Why wrap the excellent envconfig module?
  - "-c" flag to show what would be loaded from environment
  - redact type for non-disclosure via json.Marshal
  - usage blerb for a gentle reminder as to purpose
- - logged top-level error checking
+ - top-level error checking, logged via interface
  - simple spinner for Herculean command-line utils
  - demonstrate encapsulated Config for dependencies
  - but as much as anything to test and reuse surprisingly fiddly code
@@ -110,20 +110,27 @@ Check out the [post](https://clarktrimble.online/blog/encapsulated-env-cfg/#enca
 
 ## Check
 
+Eww, not another module with it's own logger!
+Hold up, `launch` logs via an interface:
+
+```go
+type Logger interface {
+  Error(ctx context.Context, msg string, err error, kv ...interface{})
+}
+```
+
 Triggering an error in `thingone`:
 
 ```
 ~/proj/launch$ DEMO_SVC_NOTSOMUCH=-1 bin/thingone
 msg > starting up
-kvs > ::config::{"version":"spin.14.d94b8a6","thing_two":"thingone","token":"--redacted--","demo_svc":{"important":"Brush and floss every day!","not_so_much":-1}}
+kvs > ::config::{"version":"spin.17.62d3015","thing_two":"thingone","token":"--redacted--","demo_svc":{"important":"Brush and floss every day!","not_so_much":-1}}
 
 err > fatal top-level error nsm may not be negative, got: -1
 github.com/clarktrimble/launch/examples/thingone/svc.New
-        /home/trimble/proj/launch/examples/thingone/svc/svclayer.go:26
+        /home/trimble/proj/launch/examples/thingone/svc/svc.go:26
 github.com/clarktrimble/launch/examples/thingone/svc.(*Config).New
-        /home/trimble/proj/launch/examples/thingone/svc/svclayer.go:41
-main.main
-        /home/trimble/proj/launch/examples/thingone/main.go:48
+        /home/trimble/proj/launch/examples/thingone/svc/svc.go:41
 ...
 ```
 
@@ -133,6 +140,13 @@ Nice to capture the error in the logs though when it's expeditious.
 Notice that token is still redacted.
 
 Hat tip to the legendary [Dave Cheney](https://dave.cheney.net/2016/04/27/dont-just-check-errors-handle-them-gracefully) for the stack trace.
+
+### minlog
+
+Eww, what's with the scuff log messages?
+
+The logging seen above is from the humble `minlog`, shoe-horned into the example.
+For a more featured logger that emits json, have a look at [github.com/clarktrimble/sabot](https://github.com/clarktrimble/sabot).
 
 ## Spinner
 
