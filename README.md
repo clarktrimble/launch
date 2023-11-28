@@ -136,6 +136,8 @@ Hat tip to the legendary [Dave Cheney](https://dave.cheney.net/2016/04/27/dont-j
 
 ## Spinner
 
+Spinner shows a ... well, spinner, showing the next character in a slice each time `Spin` is called.
+
 ```go
   sp := spinner.New()
   for i := 0; i < 99; i++ {
