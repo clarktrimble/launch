@@ -21,16 +21,16 @@ gen:
 	go generate ./...
 
 lint:
-	CGO_ENABLED=0 golangci-lint run ./...
+	golangci-lint run ./...
 
 test:
-	CGO_ENABLED=0 go test -count 1 ${TESTA}
+	go test -count 1 ${TESTA}
 
 build: ${TARGETS}
 	@echo ":: Done"
 
 ${TARGETS}:
 	@echo ":: Building $@"
-	CGO_ENABLED=0 go build -ldflags '${LDFLAGS}' -o bin/$@ examples/$@/main.go
+	go build -ldflags '${LDFLAGS}' -o bin/$@ examples/$@/main.go
 
 .PHONY:  test

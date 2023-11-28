@@ -28,8 +28,6 @@ type Config struct {
 	Svc      *svc.Config   `json:"demo_svc"`
 }
 
-// Todo: check that sourcing env for demo is mentioned somewheres
-
 func main() {
 
 	// load config from env
@@ -41,7 +39,7 @@ func main() {
 
 	lgr := &minlog.MinLog{}
 	ctx := context.Background()
-	lgr.Info(ctx, "starting", "config", cfg)
+	lgr.Info(ctx, "starting up", "config", cfg)
 
 	// demonstrate that dependency is configured
 
@@ -59,4 +57,8 @@ func main() {
 	}
 
 	fmt.Printf("%d operations in %.2f seconds\n", sp.Count, sp.Elapsed())
+
+	// fin
+
+	lgr.Info(ctx, "shutting down")
 }
