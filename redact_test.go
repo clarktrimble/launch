@@ -17,6 +17,45 @@ var _ = Describe("Redact", func() {
 		redact Redact
 	)
 
+	Describe("decoding a redact string", func() {
+
+		JustBeforeEach(func() {
+			err = redact.Decode(string(data))
+		})
+
+		When("value is a direct secret", func() {
+			BeforeEach(func() {
+				data = []byte("secret_value")
+			})
+
+			It("stores the value directly", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(redact)).To(Equal("secret_value"))
+			})
+		})
+
+		When("value is a file path", func() {
+			BeforeEach(func() {
+				data = []byte("/etc/hosts")
+			})
+
+			It("reads from the file", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(redact)).ToNot(BeEmpty())
+			})
+		})
+
+		When("value is a non-existent file path", func() {
+			BeforeEach(func() {
+				data = []byte("/no/such/file")
+			})
+
+			It("returns an error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("marshalling a redact string", func() {
 
 		JustBeforeEach(func() {
